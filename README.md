@@ -17,7 +17,7 @@
 
 ### 目录结构
 - `feishu_API_manager.py`: **飞书 API 简化封装**
-- `get_daily_log_stats_and_remind.py`: **日报统计与提醒**
+- `get_daily_log_stats_and_remind.py`: **每日日志统计与提醒**
 - `get_ops_daily_report_and_remind.py`: **运营日报同步与提醒**
 - `get_rpa_status_broadcast.py`: **RPA状态广播**
 - `gui_quick_reminder.py`: **快速提醒GUI**
