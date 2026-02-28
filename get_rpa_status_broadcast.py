@@ -197,6 +197,12 @@ class RPAMessageSender:
         # 任务成功后保存本次运行时间
         self.save_current_run_time(current_time)
 
-if __name__ == "__main__":
-    sender = RPAMessageSender()
-    sender.run()
+
+try:
+    if __name__ == "__main__":
+        sender = RPAMessageSender()
+        sender.run()
+    set_rpa_status_sync.main("RPA运行状态推送", 1, "神州")
+except Exception as e:
+    full_error_msg = traceback.format_exc()
+    set_rpa_status_sync.main("RPA运行状态推送", 0, "神州", full_error_msg)

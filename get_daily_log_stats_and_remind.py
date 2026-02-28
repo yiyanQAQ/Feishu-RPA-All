@@ -124,7 +124,7 @@ def main():
 try:
     if __name__ == "__main__":
         main()
-    set_rpa_status_sync.main("交表情况 统计 & 提醒", 1, "神州")
+    set_rpa_status_sync.main("每日日志 统计 & 提醒", 1, "神州")
 except Exception as e:
     full_error_msg = traceback.format_exc()
-    set_rpa_status_sync.main("交表情况 统计 & 提醒", 0, "神州", full_error_msg)
+    set_rpa_status_sync.main("每日日志 统计 & 提醒", 0, "神州", full_error_msg)

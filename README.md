@@ -18,11 +18,11 @@
 ### 目录结构
 - `feishu_API_manager.py`: **飞书 API 简化封装**
 - `get_daily_log_stats_and_remind.py`: **每日日志统计与提醒**
-- `get_ops_daily_report_and_remind.py`: **运营日报同步与提醒**
-- `get_rpa_status_broadcast.py`: **RPA状态广播**
+- `get_ops_daily_report_and_remind.py`: **运营及运营助理早上好和日报统计与提醒**
+- `get_rpa_status_broadcast.py`: **RPA运行状态推送**
 - `gui_quick_reminder.py`: **快速提醒GUI**
 - `quick_reminder.py`: **轻量级提醒工具**
-- `set_rpa_status_sync.py`: **数据库同步模块**
+- `set_rpa_status_sync.py`: **RPA运行状态数据库同步模块**
 
 ### 运行
 1. **克隆**:
@@ -62,7 +62,7 @@ A collection of RPA tools integrating various Feishu (Lark) automation capabilit
 - `get_rpa_status_broadcast.py`: **RPA Status Broadcast**
 - `gui_quick_reminder.py`: **Quick Reminder GUI**
 - `quick_reminder.py`: **Lightweight Reminder Tool**
-- `set_rpa_status_sync.py`: **DB Sync Module**
+- `set_rpa_status_sync.py`: **RPA Statu -> DB Sync Module**
 
 ### Installation
 1. **Clone**:
