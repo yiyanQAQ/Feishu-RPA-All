@@ -10,9 +10,9 @@ from typing import List, Dict, Any, Optional
 import set_rpa_status_sync
 from feishu_API_manager import FeishuAPIManager
 
-# --- 基础配置 ---
+# --- 配置区 ---
 def load_app_config():
-    # 查找 app_config.json，可能在当前目录或上级目录（项目根目录）
+    # 查找 app_config.json
     possible_paths = [
         os.path.join(os.path.dirname(__file__), 'app_config.json'),
         os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app_config.json')
@@ -431,7 +431,7 @@ def main():
         logger.warning("多维表中没有找到今天的记录，无法进行同步。")
         return
 
-    # --- 同步逻辑 ---
+    # 同步逻辑
     chat_rules_map = {}
     for rule in RULES:
         chat_id = rule["chat_id"]
@@ -492,7 +492,7 @@ def main():
 
     logger.info(f"同步任务完成，共更新 {total_updated} 条记录。")
     
-    # --- 提醒逻辑 ---
+    # 提醒逻辑
     check_and_send_reminders(chat_service, bitable_service, today_str)
 
 try:

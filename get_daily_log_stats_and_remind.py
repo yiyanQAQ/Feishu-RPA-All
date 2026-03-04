@@ -62,7 +62,7 @@ class DailyLogStatsReminder:
         return all_records
 
     def recursive_extract_text(self, val: Any) -> str:
-        """递归提取所有文本内容，解决公式/查找字段的嵌套问题"""
+        """递归提取所有文本内容"""
         if val is None: return ""
         if isinstance(val, dict):
             if "value" in val: return self.recursive_extract_text(val["value"])
@@ -91,15 +91,15 @@ class DailyLogStatsReminder:
         all_unpaid_user_ids = set()
 
         for fields in records:
-            # 1. 日期过滤：仅处理 2026-02-01 之后的记录
+            # 日期过滤
             raw_date = fields.get(CONFIG["FIELD_DATE"])
             if not isinstance(raw_date, int) or raw_date < self.start_ts:
                 continue
 
-            # 2. 状态提取
+            # 状态提取
             status = self.recursive_extract_text(fields.get(CONFIG["FIELD_STATUS"]))
             
-            # 3. 部门名称提取 (增强修复)
+            # 部门名称提取
             dept_raw = fields.get(CONFIG["FIELD_DEPT"])
             dept = self.recursive_extract_text(dept_raw) or "未归类部门"
             
@@ -123,23 +123,21 @@ class DailyLogStatsReminder:
             logger.info("指定时间段内无未提交记录。")
             return
 
-        # 4. 构造卡片数据
-        # 4.1 堆叠柱状图数据：按人名分柱子，按日期分段
+        # 构造JSON卡片消息
+        # 堆叠柱状图数据
         chart_values = []
-        # 为了让图表美观，我们按照总未交次数降序排列人名
         sorted_user_ids = sorted(person_stats.keys(), key=lambda uid: person_stats[uid]["count"], reverse=True)
         
         for uid in sorted_user_ids:
             info = person_stats[uid]
-            # 每个日期生成一条数据，seriesField 指定为日期即可实现堆叠
             for date_str in info["dates"]:
                 chart_values.append({
                     "user": info["name"],
                     "date": date_str,
-                    "val": 1 # 每一段代表 1 次
+                    "val": 1
                 })
 
-        # 4.2 个人未交总占比饼图数据
+        # 个人未交总占比饼图数据
         pie_values = []
         for uid, info in person_stats.items():
             pie_values.append({
@@ -147,7 +145,7 @@ class DailyLogStatsReminder:
                 "count": info["count"]
             })
 
-        # 4.3 部门占比 Markdown 横向图
+        # 部门占比Markdown横向图
         def get_bar(percent):
             filled = int(round(percent / 10))
             color = "🟥" if percent > 30 else "🟧" if percent > 10 else "🟩"
@@ -158,11 +156,11 @@ class DailyLogStatsReminder:
             rate = (s["unpaid"] / s["total"]) * 100
             dept_md += f"{d}：{s['unpaid']}/{s['total']} ({rate:.1f}%)\n{get_bar(rate)}\n"
 
-        # 4.3 集中 @ 人员数据
+        # 集中@人员
         all_unpaid_user_ids = sorted(list(all_unpaid_user_ids))
         at_header = " ".join([f"<at id={uid}></at>" for uid in all_unpaid_user_ids if uid])
 
-        # 5. 组装卡片
+        # 组装卡片
         card = {
             "config": {"wide_screen_mode": True},
             "header": {"template": "red", "title": {"content": "🗓️ 周期性日志未提交统计", "tag": "plain_text"}},
@@ -183,7 +181,7 @@ class DailyLogStatsReminder:
                                                         "yField": "val",
                                                         "seriesField": "date",
                                                         "stack": True,
-                                                        "label": {"visible": False} # 段落太多时不显示数字，保持美观
+                                                        "label": {"visible": False} # 段落太多时不显示数字
                                                     }
                                                 },
                                                 {"tag": "hr"},
@@ -200,7 +198,7 @@ class DailyLogStatsReminder:
                                                         "categoryField": "user",
                                                         "valueField": "count",
                                                         "outerRadius": 0.8,
-                                                        "innerRadius": 0.5, # 环形图样式更现代
+                                                        "innerRadius": 0.5,
                                                         "label": {"visible": True, "type": "outer"}
                                                     }
                                                 },

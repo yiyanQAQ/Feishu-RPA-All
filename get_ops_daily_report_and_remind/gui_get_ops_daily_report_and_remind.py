@@ -16,9 +16,7 @@ CONFIG_FILE_NAME = "config_get_chat_history.json"
 CONFIG_PATH = os.path.join(USER_HOME, CONFIG_FILE_NAME)
 
 class TextHandler(logging.Handler):
-    """
-    日志处理器，将日志输出到Text控件
-    """
+    """日志处理器，将日志输出到Text控件"""
     def __init__(self, text_widget):
         super().__init__()
         self.text_widget = text_widget

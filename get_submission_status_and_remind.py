@@ -38,7 +38,7 @@ class SubmissionStatusReminder:
     def __init__(self):
         self.manager = FeishuAPIManager(CONFIG["APP_ID"], CONFIG["APP_SECRET"])
         self.tz = timezone(timedelta(hours=8))
-        # 统计起始时间：当前月份 1 号
+        # 统计起始时间
         now = datetime.now(self.tz)
         self.start_dt = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         self.start_ts = int(self.start_dt.timestamp() * 1000)
@@ -93,19 +93,19 @@ class SubmissionStatusReminder:
         all_unpaid_user_ids = set()
 
         for fields in records:
-            # 1. 日期过滤
+            # 日期过滤
             raw_date = fields.get(CONFIG["FIELD_DATE"])
             if not isinstance(raw_date, int) or raw_date < self.start_ts:
                 continue
 
-            # 2. 状态检查 (1代表未交)
+            # 状态检查 (1未交)
             status = fields.get(CONFIG["FIELD_STATUS"])
             if status != 1:
                 continue
 
             name, openid = self.extract_user_info(fields.get(CONFIG["FIELD_PERSON"]))
             
-            # 如果没有 openid，尝试使用姓名作为唯一标识，或者标记为未知
+            # 如果没有openid，则使用姓名作为唯一标识，或者标记为未知
             user_key = openid if openid else f"name_{name}"
             
             total_unpaid += 1
@@ -127,8 +127,8 @@ class SubmissionStatusReminder:
             logger.info("本月记录均已提交。")
             return
 
-        # 3. 构造可视化数据
-        # 3.1 堆叠柱状图数据 (按人分柱子，按 日期+表名 堆叠)
+        # 构造JSON卡片消息
+        # 堆叠柱状图数据
         chart_values = []
         pie_values = []
         sorted_uids = sorted(person_stats.keys(), key=lambda x: person_stats[x]["count"], reverse=True)
@@ -144,7 +144,7 @@ class SubmissionStatusReminder:
                         "val": 1
                     })
 
-        # 3.2 构造详细明细 Markdown
+        # 构造Markdown格式统计数据
         detail_md = "**📝 未交表项明细：**\n"
         for user_key in sorted_uids:
             info = person_stats[user_key]
@@ -159,7 +159,7 @@ class SubmissionStatusReminder:
                 items_list.append(f"{d_str}({','.join(tables)})")
             detail_md += f"{at_tag} 共 **{info['count']}** 份: {' '.join(items_list)}\n"
 
-        # 4. 组装卡片
+        # 组装卡片
         at_header = " ".join([f"<at id={uid}></at>" for uid in sorted(list(all_unpaid_user_ids))])
         
         card = {

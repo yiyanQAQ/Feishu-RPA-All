@@ -5,7 +5,7 @@ from feishu_API_manager import FeishuAPIManager
 
 import os
 
-# --- 基础配置 ---
+# --- 配置区 ---
 def load_app_config():
     config_path = os.path.join(os.path.dirname(__file__), '../app_config.json')
     if not os.path.exists(config_path):

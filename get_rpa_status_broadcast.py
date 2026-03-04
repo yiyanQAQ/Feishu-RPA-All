@@ -10,7 +10,7 @@ import set_rpa_status_sync
 from feishu_API_manager import FeishuAPIManager
 from set_rpa_status_sync import RPAStatusManager
 
-# --- 配置 ---
+# --- 配置区 ---
 def load_app_config():
     config_path = os.path.join(os.path.dirname(__file__), 'app_config.json')
     if not os.path.exists(config_path):
@@ -117,7 +117,7 @@ class RPAMessageSender:
             -1: {"color": "orange", "label": "⚠️ 状态未知"}
         }
 
-        # 避免token消耗过多，根据maintainer分组发送
+        # 根据 maintainer 分组发送避免 token 消耗过多
         grouped_records = {}
         for r in records:
             m = r['maintainer']
