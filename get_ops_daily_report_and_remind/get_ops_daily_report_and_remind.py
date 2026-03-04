@@ -10,10 +10,25 @@ from typing import List, Dict, Any, Optional
 import set_rpa_status_sync
 from feishu_API_manager import FeishuAPIManager
 
+# --- 基础配置 ---
+def load_app_config():
+    # 查找 app_config.json，可能在当前目录或上级目录（项目根目录）
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), 'app_config.json'),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app_config.json')
+    ]
+    for config_path in possible_paths:
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    return {"APP_ID": "", "APP_SECRET": ""} # 回退方案
+
+app_config = load_app_config()
+
 # --- 默认配置 ---
 DEFAULT_CONFIG = {
-    "APP_ID": "cli_a9edd60855a35bd7",
-    "APP_SECRET": "",
+    "APP_ID": app_config["APP_ID"],
+    "APP_SECRET": app_config["APP_SECRET"],
     "TZ_OFFSET": 8,
     "BITABLE_APP_TOKEN": "CmhSbOMbaapACXs4TbGcvSU3nVf",
     "BITABLE_TABLE_ID": "tbl4G3myGhXYooNn",

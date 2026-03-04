@@ -3,9 +3,19 @@ from tkinter import messagebox
 import json
 from feishu_API_manager import FeishuAPIManager
 
+import os
+
 # --- 基础配置 ---
-APP_ID = "cli_a9edd60855a35bd7"
-APP_SECRET = ""
+def load_app_config():
+    config_path = os.path.join(os.path.dirname(__file__), '../app_config.json')
+    if not os.path.exists(config_path):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '../app_config.json')
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+app_config = load_app_config()
+APP_ID = app_config["APP_ID"]
+APP_SECRET = app_config["APP_SECRET"]
 CHAT_ID = "oc_f69094cda5ee5139924a926abc5816b2"
 
 
@@ -43,12 +53,12 @@ root.geometry("400x250")
 
 primary_color = "#927CD1"
 
-tk.Label(root, text="？:").pack(pady=(15, 0))
+tk.Label(root, text="枪决名单:").pack(pady=(15, 0))
 entry_names = tk.Entry(root, width=40)
 entry_names.insert(0, "火山, 青山, 雪山, 星辰, 神州")
 entry_names.pack(pady=5)
 
-tk.Label(root, text="？:").pack(pady=(10, 0))
+tk.Label(root, text="你再叫:").pack(pady=(10, 0))
 entry_msg = tk.Entry(root, width=40)
 entry_msg.insert(0, "？")
 entry_msg.pack(pady=5)

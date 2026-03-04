@@ -16,13 +16,22 @@
 - **可视化界面**: 提供多个 GUI 工具，方便快速发送提醒和查看运行日志
 
 ### 目录结构
+- `app_config.json`: **飞书应用凭据配置文件 (自行创建)**
 - `feishu_API_manager.py`: **飞书 API 简化封装**
 - `get_daily_log_stats_and_remind.py`: **每日日志统计与提醒**
-- `get_ops_daily_report_and_remind.py`: **运营及运营助理早上好和日报统计与提醒**
-- `get_rpa_status_broadcast.py`: **RPA运行状态推送**
-- `gui_quick_reminder.py`: **快速提醒GUI**
-- `quick_reminder.py`: **轻量级提醒工具**
+- `get_ops_daily_report_and_remind`: **运营日报同步与提醒**
+- `get_rpa_status_broadcast.py`: **RPA状态广播**
+- `quick_reminder`: **轻量级提醒工具**
 - `set_rpa_status_sync.py`: **RPA运行状态数据库同步模块**
+
+### 配置凭据
+使用 `app_config.json` 统一管理飞书自建APP凭据。请在项目根目录下创建该文件：
+```json
+{
+    "APP_ID": "APP_ID",
+    "APP_SECRET": "APP_SECRET"
+}
+```
 
 ### 运行
 1. **克隆**:
@@ -56,13 +65,22 @@ A collection of RPA tools integrating various Feishu (Lark) automation capabilit
 - **GUI Tools**: Provides several visual tools for quick reminder sending and log viewing.
 
 ### Directory Structure
+- `app_config.json`: **Feishu Credentials Configuration (Create manually)**
 - `feishu_API_manager.py`: **Feishu API Core Manager**
 - `get_daily_log_stats_and_remind.py`: **Daily Log Stats & Reminder**
-- `get_ops_daily_report_and_remind.py`: **Ops Daily Report Sync & Reminder**
+- `get_ops_daily_report_and_remind`: **Ops Daily Report Sync & Reminder**
 - `get_rpa_status_broadcast.py`: **RPA Status Broadcast**
-- `gui_quick_reminder.py`: **Quick Reminder GUI**
-- `quick_reminder.py`: **Lightweight Reminder Tool**
-- `set_rpa_status_sync.py`: **RPA Statu -> DB Sync Module**
+- `quick_reminder`: **Lightweight Reminder Tool**
+- `set_rpa_status_sync.py`: **RPA status DB Sync Module**
+
+### Configuration
+Uses `app_config.json` to manage Feishu credentials. Please create this file in the project root:
+```json
+{
+    "APP_ID": "APP_ID",
+    "APP_SECRET": "APP_SECRET"
+}
+```
 
 ### Installation
 1. **Clone**:

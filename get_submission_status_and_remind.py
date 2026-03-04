@@ -1,200 +1,219 @@
+import json
 import logging
 import traceback
+import time
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from feishu_API_manager import FeishuAPIManager
 import set_rpa_status_sync
 
-# --- 配置区域 ---
+import os
+
+# --- 配置区 ---
+def load_app_config():
+    config_path = os.path.join(os.path.dirname(__file__), 'app_config.json')
+    if not os.path.exists(config_path):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app_config.json')
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+app_config = load_app_config()
+
 CONFIG = {
-    "APP_ID": "cli_a9edd60855a35bd7",
-    "APP_SECRET": "",
-    "TZ_OFFSET": 8,
-    
-    # 多维表配置
+    "APP_ID": app_config["APP_ID"],
+    "APP_SECRET": app_config["APP_SECRET"],
     "BITABLE_APP_TOKEN": "OD1VbarIWasTz1sNnpdcszQfnuh",
     "BITABLE_TABLE_ID": "tblZJpyamcZqkH2p",
-    
-    # 提醒群ID
-    "CHAT_ID": "oc_aed11d5a664871bbaac3d3967c31a6c8",
-    
-    # 字段名称配置
+    "FIELD_STATUS": "未交", # 1代表未交
+    "FIELD_PERSON": "交表人",
     "FIELD_DATE": "日期",
-    "FIELD_STATUS": "未交",
     "FIELD_TABLE_NAME": "表格名称",
-    "FIELD_PERSON": "交表人"
+    "REMINDER_CHAT_ID": "oc_aed11d5a664871bbaac3d3967c31a6c8",
 }
 
-# 设置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class LogChecker:
+class SubmissionStatusReminder:
     def __init__(self):
         self.manager = FeishuAPIManager(CONFIG["APP_ID"], CONFIG["APP_SECRET"])
-        self.tz = timezone(timedelta(hours=CONFIG["TZ_OFFSET"]))
-
-    def get_records_in_range(self) -> List[Dict[str, Any]]:
-        """获取本月（1号到今天）的所有记录"""
+        self.tz = timezone(timedelta(hours=8))
+        # 统计起始时间：当前月份 1 号
         now = datetime.now(self.tz)
-        start_dt = now.replace(day=1).date() # 本月第一天
-        end_dt = now.date()                  # 今天
-        
-        logger.info(f"正在获取本月 ({start_dt} 到 {end_dt}) 之间的记录...")
-        
-        target_records = []
+        self.start_dt = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        self.start_ts = int(self.start_dt.timestamp() * 1000)
+
+    def recursive_extract_text(self, val: Any) -> str:
+        if val is None: return ""
+        if isinstance(val, dict):
+            if "value" in val: return self.recursive_extract_text(val["value"])
+            if "text" in val: return str(val["text"])
+            if "name" in val: return str(val["name"])
+            return ""
+        if isinstance(val, list):
+            return "".join([self.recursive_extract_text(i) for i in val])
+        return str(val).strip()
+
+    def extract_user_info(self, field_value: Any):
+        if isinstance(field_value, list) and len(field_value) > 0:
+            p = field_value[0]
+            return p.get("name", "未知"), p.get("id")
+        elif isinstance(field_value, dict):
+            return field_value.get("name", "未知"), field_value.get("id")
+        return "未知", None
+
+    def fetch_records(self) -> List[Dict[str, Any]]:
+        all_records = []
         page_token = None
-        
-        # 需获取的字段列表
-        field_names = [
-            CONFIG["FIELD_DATE"], 
-            CONFIG["FIELD_STATUS"], 
-            CONFIG["FIELD_TABLE_NAME"], 
-            CONFIG["FIELD_PERSON"]
-        ]
-        
+        logger.info(f"正在从 {self.start_dt.strftime('%Y-%m-%d')} 开始检索记录...")
         while True:
             try:
                 resp_data = self.manager.search_records(
                     app_token=CONFIG["BITABLE_APP_TOKEN"],
                     table_id=CONFIG["BITABLE_TABLE_ID"],
-                    page_size=100,
-                    page_token=page_token,
-                    field_names=field_names
+                    page_size=500,
+                    page_token=page_token
                 )
-                
-                if not resp_data or not resp_data.items:
-                    break
-                
-                for item in resp_data.items:
-                    fields = item.fields
-                    record_date_val = fields.get(CONFIG["FIELD_DATE"])
-                    
-                    # 解析记录日期
-                    record_dt = None
-                    if isinstance(record_date_val, int):
-                        record_dt = datetime.fromtimestamp(record_date_val / 1000, self.tz).date()
-                    elif isinstance(record_date_val, str):
-                        try:
-                            # 解析常见日期格式
-                            for fmt in ["%Y/%m/%d", "%Y-%m-%d", "%Y.%m.%d"]:
-                                try:
-                                    record_dt = datetime.strptime(record_date_val, fmt).date()
-                                    break
-                                except ValueError:
-                                    continue
-                        except ValueError:
-                            pass
-
-                    if record_dt and start_dt <= record_dt <= end_dt:
-                        target_records.append(item)
-
-                if not resp_data.has_more:
+                if resp_data and hasattr(resp_data, "items") and resp_data.items:
+                    all_records.extend([item.fields for item in resp_data.items])
+                if not resp_data or not getattr(resp_data, "has_more", False):
                     break
                 page_token = resp_data.page_token
             except Exception as e:
-                logger.error(f"获取记录失败: {e}")
+                logger.error(f"抓取异常: {e}")
                 break
-                
-        logger.info(f"共找到 {len(target_records)} 条本月的记录")
-        return target_records
-
-    def extract_user_id(self, person_field):
-        """从人员字段提取Open ID"""
-        if isinstance(person_field, list) and len(person_field) > 0:
-            p = person_field[0]
-            if isinstance(p, dict):
-                return p.get("id")
-        return None
-
-    def extract_text(self, field_value):
-        """从多维表字段中提取纯文本"""
-        if isinstance(field_value, list):
-            texts = []
-            for item in field_value:
-                if isinstance(item, dict):
-                    text = item.get("text")
-                    if text:
-                        texts.append(text)
-                elif isinstance(item, str):
-                    texts.append(item)
-            return "".join(texts) # 或者用逗号连接，视情况而定
-        elif isinstance(field_value, str):
-            return field_value
-        return str(field_value) if field_value is not None else ""
+        return all_records
 
     def run(self):
-        records = self.get_records_in_range()
-        if not records:
-            logger.info("没有找到本月的记录。")
-            return
+        records = self.fetch_records()
+        if not records: return
 
-        # 统计未提交情况
-        missing_items = {}
+        person_stats = {} # {openid: {name, count, details: {date: [tables]}}}
+        total_unpaid = 0
+        all_unpaid_user_ids = set()
 
-        for item in records:
-            fields = item.fields
+        for fields in records:
+            # 1. 日期过滤
+            raw_date = fields.get(CONFIG["FIELD_DATE"])
+            if not isinstance(raw_date, int) or raw_date < self.start_ts:
+                continue
+
+            # 2. 状态检查 (1代表未交)
             status = fields.get(CONFIG["FIELD_STATUS"])
+            if status != 1:
+                continue
+
+            name, openid = self.extract_user_info(fields.get(CONFIG["FIELD_PERSON"]))
             
-            # 检查未交字段是否为1
-            if status == 1:
-                user_id = self.extract_user_id(fields.get(CONFIG["FIELD_PERSON"]))
-                if user_id:
-                    date_val = fields.get(CONFIG["FIELD_DATE"])
+            # 如果没有 openid，尝试使用姓名作为唯一标识，或者标记为未知
+            user_key = openid if openid else f"name_{name}"
+            
+            total_unpaid += 1
+            table_name = self.recursive_extract_text(fields.get(CONFIG["FIELD_TABLE_NAME"])) or "未知表格"
+            date_str = datetime.fromtimestamp(raw_date / 1000, self.tz).strftime('%m.%d')
 
-                    raw_table_name = fields.get(CONFIG["FIELD_TABLE_NAME"])
-                    table_name = self.extract_text(raw_table_name)
+            if openid:
+                all_unpaid_user_ids.add(openid)
+            
+            if user_key not in person_stats:
+                person_stats[user_key] = {"name": name, "count": 0, "details": {}, "is_valid_user": bool(openid)}
+            
+            person_stats[user_key]["count"] += 1
+            if date_str not in person_stats[user_key]["details"]:
+                person_stats[user_key]["details"][date_str] = []
+            person_stats[user_key]["details"][date_str].append(table_name)
 
-                    date_str = ""
-                    if isinstance(date_val, int):
-                        date_str = datetime.fromtimestamp(date_val / 1000, self.tz).strftime('%Y.%m.%d')
-                    elif isinstance(date_val, str):
-                        date_str = date_val
-                    
-                    item_str = f"{date_str}{table_name}"
-                    
-                    if user_id not in missing_items:
-                        missing_items[user_id] = []
-                    missing_items[user_id].append(item_str)
-
-        # 发送提醒
-        if not missing_items:
-            logger.info("本月所有记录均已提交，无需提醒。")
+        if total_unpaid == 0:
+            logger.info("本月记录均已提交。")
             return
 
-        logger.info("开始发送提醒...")
-        chat_id = CONFIG["CHAT_ID"]
+        # 3. 构造可视化数据
+        # 3.1 堆叠柱状图数据 (按人分柱子，按 日期+表名 堆叠)
+        chart_values = []
+        pie_values = []
+        sorted_uids = sorted(person_stats.keys(), key=lambda x: person_stats[x]["count"], reverse=True)
         
-        for user_id, items in missing_items.items():
-            items.sort()
-            
-            at_tag = f'<at user_id="{user_id}"></at>'
-            
-            if len(items) > 1:
-                # 多个未交
-                items_str = "，\n".join(items)
-                msg = f"{at_tag}\n{items_str}\n\n多表未交，请及时提交 or 找IT核对"
-            else:
-                # 单个未交
-                msg = f"{at_tag}\n{items[0]}\n\n未交，请及时提交 or 找IT核对"
-            
-            try:
-                self.manager.send_message(
-                    receive_id=chat_id,
-                    content=msg,
-                    msg_type="text",
-                    receive_id_type="chat_id"
-                )
-                logger.info(f"已发送提醒给用户 {user_id}: {items}")
-            except Exception as e:
-                logger.error(f"发送失败: {e}")
+        for uid in sorted_uids:
+            info = person_stats[uid]
+            pie_values.append({"user": info["name"], "count": info["count"]})
+            for d_str, tables in info["details"].items():
+                for t_name in tables:
+                    chart_values.append({
+                        "user": info["name"],
+                        "item": f"{d_str} {t_name}",
+                        "val": 1
+                    })
 
-        logger.info("任务完成。")
+        # 3.2 构造详细明细 Markdown
+        detail_md = "**📝 未交表项明细：**\n"
+        for user_key in sorted_uids:
+            info = person_stats[user_key]
+            
+            if info.get("is_valid_user"):
+                at_tag = f"<at id={user_key}></at>"
+            else:
+                at_tag = f"**{info['name']}** (未关联飞书ID)"
+                
+            items_list = []
+            for d_str, tables in sorted(info["details"].items()):
+                items_list.append(f"{d_str}({','.join(tables)})")
+            detail_md += f"{at_tag} 共 **{info['count']}** 份: {' '.join(items_list)}\n"
+
+        # 4. 组装卡片
+        at_header = " ".join([f"<at id={uid}></at>" for uid in sorted(list(all_unpaid_user_ids))])
+        
+        card = {
+            "config": {"wide_screen_mode": True},
+            "header": {"template": "orange", "title": {"content": "📊 本月交表情况追踪报告", "tag": "plain_text"}},
+            "elements": [
+                {"tag": "div", "text": {"tag": "lark_md", "content": f"{at_header}\n\n当前检测到 **{total_unpaid}** 项表格尚未提交："}},
+                {"tag": "hr"},
+                {"tag": "div", "text": {"tag": "lark_md", "content": "**📉 个人未交频次分布**"}},
+                {
+                    "tag": "chart",
+                    "aspect_ratio": "4:3" if len(person_stats) > 10 else "16:9",
+                    "chart_spec": {
+                        "type": "bar",
+                        "data": {"values": chart_values},
+                        "xField": "user",
+                        "yField": "val",
+                        "seriesField": "item",
+                        "stack": True,
+                        "label": {"visible": False}
+                    }
+                },
+                {"tag": "hr"},
+                {"tag": "div", "text": {"tag": "lark_md", "content": "**📌 个人交表延误权重分析**"}},
+                {
+                    "tag": "chart",
+                    "aspect_ratio": "16:9",
+                    "chart_spec": {
+                        "type": "pie",
+                        "data": {"values": pie_values},
+                        "categoryField": "user",
+                        "valueField": "count",
+                        "outerRadius": 0.8,
+                        "innerRadius": 0.5,
+                        "label": {"visible": True, "type": "outer"}
+                    }
+                },
+                {"tag": "hr"},
+                {"tag": "div", "text": {"tag": "lark_md", "content": detail_md}},
+                {"tag": "note", "elements": [{"tag": "plain_text", "content": f"统计区间：{self.start_dt.strftime('%Y-%m-%d')} 至今 | 生成时间：{datetime.now().strftime('%H:%M')}"}]}
+            ]
+        }
+
+        try:
+            self.manager.send_message(CONFIG["REMINDER_CHAT_ID"], json.dumps(card, ensure_ascii=False), "interactive", "chat_id")
+            logger.info("交表统计卡片发送成功。")
+        except Exception as e:
+            logger.error(f"卡片发送失败: {e}")
+
+def main():
+    SubmissionStatusReminder().run()
+
 try:
-    if __name__ == "__main__":
-        main_checker = LogChecker()
-        main_checker.run()
+    if __name__ == "__main__": main()
     set_rpa_status_sync.main("交表情况 统计 & 提醒", 1, "神州")
 except Exception as e:
-    full_error_msg = traceback.format_exc()
-    set_rpa_status_sync.main("交表情况 统计 & 提醒", 0, "神州", full_error_msg)
+    set_rpa_status_sync.main("交表情况 统计 & 提醒", 0, "神州", traceback.format_exc())

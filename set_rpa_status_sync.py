@@ -3,9 +3,9 @@ import pymysql
 class RPAStatusManager:
     def __init__(self):
         self.db_config = {
-            'host': '',
-            'user': '',
-            'password': '',
+            'host': '121.40.82.248',
+            'user': 'duoqu',
+            'password': 'Aa165432',
             'database': 'RPA_State',
             'charset': 'utf8mb4',
             'cursorclass': pymysql.cursors.DictCursor
@@ -43,5 +43,5 @@ class RPAStatusManager:
 def main(rpa_name, run_status, maintainer, error_log=None):
     RPAStatusManager().sync_state(rpa_name, run_status, maintainer, error_log)
 
-# if __name__ == "__main__":
-#     main("测试1",0,"火山","根据时间运行测试日志")
+if __name__ == "__main__":
+    main("测试1",0,"火山","根据时间运行测试日志")

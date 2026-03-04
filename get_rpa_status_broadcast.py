@@ -1,15 +1,28 @@
 import json
+import traceback
+
 import pymysql
 import time
 import os
 from datetime import datetime
+
+import set_rpa_status_sync
 from feishu_API_manager import FeishuAPIManager
 from set_rpa_status_sync import RPAStatusManager
 
 # --- 配置 ---
+def load_app_config():
+    config_path = os.path.join(os.path.dirname(__file__), 'app_config.json')
+    if not os.path.exists(config_path):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app_config.json')
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+app_config = load_app_config()
+
 FEISHU_CONFIG = {
-    "APP_ID": "cli_a9edd60855a35bd7",
-    "APP_SECRET": "",
+    "APP_ID": app_config["APP_ID"],
+    "APP_SECRET": app_config["APP_SECRET"],
     "CHAT_ID": "oc_d2395b6958036b69d94d9cf396e5b62c"
 }
 
@@ -196,8 +209,6 @@ class RPAMessageSender:
 
         # 任务成功后保存本次运行时间
         self.save_current_run_time(current_time)
-
-
 try:
     if __name__ == "__main__":
         sender = RPAMessageSender()
