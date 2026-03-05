@@ -13,11 +13,11 @@
 - `app_config.json`: **飞书应用凭据配置文件 (自行创建)**
 - `feishu_API_manager.py`: **飞书 API 简化封装**
 - `set_rpa_status_sync.py`: **RPA 运行状态数据库同步模块**
-- `Daily_log_status_and_remind`: **每日日志统计与提醒**
-- `Ops_daily_report_and_remind`: **运营日报同步与提醒**
-- `Submission_status_and_remind`: **交表情况统计与提醒**
-- `Quick_reminder`: **轻量级提醒工具**
-- `RPA_status-broadcast-sync`: **RPA 状态广播**
+- `Daily_log_status_and_remind/`: **每日日志统计与提醒**
+- `Ops_daily_report_and_remind/`: **运营日报同步与提醒**
+- `Submission_status_and_remind/`: **交表情况统计与提醒**
+- `Quick_reminder/`: **轻量级提醒工具**
+- `RPA_status-broadcast-sync/`: **RPA 状态广播**
 
 ### 配置凭据
 使用 `app_config.json` 统一管理飞书自建APP凭据。请在项目根目录下创建该文件：
@@ -57,11 +57,11 @@ A collection of RPA tools integrating various Feishu (Lark) automation capabilit
 - `app_config.json`: **Feishu Credentials Configuration (Create manually)**
 - `feishu_API_manager.py`: **Feishu API Core Manager**
 - `set_rpa_status_sync.py`: **RPA Status DB Sync Module**
-- `Daily_log_status_and_remind.py`: **Daily Log Status & Reminder**
-- `Ops_daily_report_and_remind`: **Ops Daily Report Sync & Reminder**
-- `Submission_status_and_remind`: **Submission Status & Reminders**
-- `Quick_reminder`: **Lightweight Reminder Tool**
-- `RPA_status-broadcast-sync`: **RPA Status Broadcast**
+- `Daily_log_status_and_remind/`: **Daily Log Status & Reminder**
+- `Ops_daily_report_and_remind/`: **Ops Daily Report Sync & Reminder**
+- `Submission_status_and_remind/`: **Submission Status & Reminders**
+- `Quick_reminder/`: **Lightweight Reminder Tool**
+- `RPA_status-broadcast-sync/`: **RPA Status Broadcast**
 
 ### Configuration
 Uses `app_config.json` to manage Feishu credentials. Please create this file in the project root:
