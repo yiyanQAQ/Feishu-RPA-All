@@ -24,7 +24,7 @@ class FeishuAPIManager:
             return lark.RequestOption.builder().user_access_token(user_access_token).build()
         return None
 
-    def _handle_response(self, response: Any, action_name: str) -> Dict[str, Any]:
+    def _handle_response(self, response: Any, action_name: str) -> Any:
         if not response.success():
             raw_content = response.raw.content.decode('utf-8') if response.raw else ""
             try:
@@ -36,15 +36,20 @@ class FeishuAPIManager:
                          f"Raw Resp: {raw_json}")
             self.logger.error(error_msg)
             raise Exception(f"Feishu API Error: {error_msg}")
-        return response.data
+        
+        # 某些删除接口成功后返回结果可能没有 data 属性
+        return getattr(response, 'data', {})
 
-    # 凭证 Auth
+    # --- 凭证 (Auth) ---
+
     def get_tenant_access_token(self) -> str:
         """自建应用获取 tenant_access_token"""
-        resp = self.client.auth.tenant_access_token.internal(
+        resp = self.client.auth.v3.tenant_access_token.internal(
             lark.InternalTenantAccessTokenRequest.builder() \
-            .app_id(self.app_id) \
-            .app_secret(self.app_secret) \
+            .request_body(InternalTenantAccessTokenRequestBody.builder() \
+                .app_id(self.app_id) \
+                .app_secret(self.app_secret) \
+                .build()) \
             .build()
         )
         if not resp.success():
@@ -65,8 +70,9 @@ class FeishuAPIManager:
             raise Exception(f"Failed to get app token: {resp.msg}")
         return resp.data.app_access_token
 
-    # 用户 Contact
-    def get_user(self, user_id: str, user_id_type: str = "open_id", department_id_type: str = "open_department_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    # --- 用户 (Contact) ---
+
+    def get_user(self, user_id: str, user_id_type: str = "open_id", department_id_type: str = "open_department_id", user_access_token: Optional[str] = None) -> Any:
         """获取单个用户信息"""
         request = GetUserRequest.builder() \
             .user_id(user_id) \
@@ -76,7 +82,7 @@ class FeishuAPIManager:
         response = self.client.contact.v3.user.get(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_user")
 
-    def batch_get_users(self, user_ids: List[str], user_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def batch_get_users(self, user_ids: List[str], user_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Any:
         """批量获取用户信息"""
         request = BatchUserRequest.builder() \
             .user_ids(user_ids) \
@@ -85,7 +91,7 @@ class FeishuAPIManager:
         response = self.client.contact.v3.user.batch(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "batch_get_users")
 
-    def find_users_by_department(self, department_id: str, user_id_type: str = "open_id", page_size: int = 10, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def find_users_by_department(self, department_id: str, user_id_type: str = "open_id", page_size: int = 10, user_access_token: Optional[str] = None) -> Any:
         """获取部门直属用户列表"""
         request = FindByDepartmentUserRequest.builder() \
             .department_id(department_id) \
@@ -95,8 +101,9 @@ class FeishuAPIManager:
         response = self.client.contact.v3.user.find_by_department(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "find_users_by_department")
 
-    # 消息 IM
-    def list_messages(self, container_id: str, container_id_type: str = "chat", start_time: Optional[str] = None, end_time: Optional[str] = None, sort_type: str = "ByCreateTimeAsc", page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    # --- 消息 (IM) ---
+
+    def list_messages(self, container_id: str, container_id_type: str = "chat", start_time: Optional[str] = None, end_time: Optional[str] = None, sort_type: str = "ByCreateTimeAsc", page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """获取会话历史消息"""
         request_builder = ListMessageRequest.builder() \
             .container_id_type(container_id_type) \
@@ -109,7 +116,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.list(request_builder.build(), option=self._get_option(user_access_token))
         return self._handle_response(response, "list_messages")
 
-    def send_message(self, receive_id: str, content: str, msg_type: str = "text", receive_id_type: str = "open_id", uuid: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def send_message(self, receive_id: str, content: str, msg_type: str = "text", receive_id_type: str = "open_id", uuid: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """发送消息"""
         if msg_type == "text" and not content.strip().startswith("{"):
             content_json = json.dumps({"text": content})
@@ -127,13 +134,13 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.create(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "send_message")
 
-    def delete_message(self, message_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def delete_message(self, message_id: str, user_access_token: Optional[str] = None) -> Any:
         """撤回消息"""
         request = DeleteMessageRequest.builder().message_id(message_id).build()
         response = self.client.im.v1.message.delete(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "delete_message")
 
-    def reply_message(self, message_id: str, content: str, msg_type: str = "text", reply_in_thread: bool = True, uuid: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def reply_message(self, message_id: str, content: str, msg_type: str = "text", reply_in_thread: bool = True, uuid: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """回复消息"""
         body = ReplyMessageRequestBody.builder() \
             .content(content) \
@@ -147,7 +154,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.reply(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "reply_message")
 
-    def update_message(self, message_id: str, content: str, msg_type: str = "text", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def update_message(self, message_id: str, content: str, msg_type: str = "text", user_access_token: Optional[str] = None) -> Any:
         """编辑消息"""
         request = UpdateMessageRequest.builder() \
             .message_id(message_id) \
@@ -156,7 +163,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.update(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "update_message")
 
-    def forward_message(self, message_id: str, receive_id: str, receive_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def forward_message(self, message_id: str, receive_id: str, receive_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Any:
         """转发消息"""
         request = ForwardMessageRequest.builder() \
             .message_id(message_id) \
@@ -166,7 +173,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.forward(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "forward_message")
 
-    def merge_forward_message(self, receive_id: str, message_id_list: List[str], receive_id_type: str = "chat_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def merge_forward_message(self, receive_id: str, message_id_list: List[str], receive_id_type: str = "chat_id", user_access_token: Optional[str] = None) -> Any:
         """合并转发消息"""
         request = MergeForwardMessageRequest.builder() \
             .receive_id_type(receive_id_type) \
@@ -178,7 +185,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.merge_forward(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "merge_forward_message")
 
-    def forward_thread(self, thread_id: str, receive_id: str, receive_id_type: str = "chat_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def forward_thread(self, thread_id: str, receive_id: str, receive_id_type: str = "chat_id", user_access_token: Optional[str] = None) -> Any:
         """转发话题"""
         request = ForwardThreadRequest.builder() \
             .thread_id(thread_id) \
@@ -188,7 +195,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.thread.forward(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "forward_thread")
 
-    def push_follow_up_message(self, message_id: str, follow_ups: List[FollowUp], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def push_follow_up_message(self, message_id: str, follow_ups: List[FollowUp], user_access_token: Optional[str] = None) -> Any:
         """添加跟随气泡"""
         request = PushFollowUpMessageRequest.builder() \
             .message_id(message_id) \
@@ -197,7 +204,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.push_follow_up(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "push_follow_up_message")
 
-    def get_message_read_users(self, message_id: str, user_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def get_message_read_users(self, message_id: str, user_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Any:
         """查询消息已读信息"""
         request = ReadUsersMessageRequest.builder().message_id(message_id).user_id_type(user_id_type).build()
         response = self.client.im.v1.message.read_users(request, option=self._get_option(user_access_token))
@@ -211,31 +218,31 @@ class FeishuAPIManager:
             self._handle_response(response, "get_message_resource")
         return response
 
-    def get_message_content(self, message_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def get_message_content(self, message_id: str, user_access_token: Optional[str] = None) -> Any:
         """获取指定消息的内容"""
         request = GetMessageRequest.builder().message_id(message_id).build()
         response = self.client.im.v1.message.get(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_message_content")
 
-    def get_batch_message_read_user(self, batch_message_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def get_batch_message_read_user(self, batch_message_id: str, user_access_token: Optional[str] = None) -> Any:
         """查询批量消息推送和阅读人数"""
         request = ReadUserBatchMessageRequest.builder().batch_message_id(batch_message_id).build()
         response = self.client.im.v1.batch_message.read_user(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_batch_message_read_user")
 
-    def get_batch_message_progress(self, batch_message_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def get_batch_message_progress(self, batch_message_id: str, user_access_token: Optional[str] = None) -> Any:
         """查询批量消息整体进度"""
         request = GetProgressBatchMessageRequest.builder().batch_message_id(batch_message_id).build()
         response = self.client.im.v1.batch_message.get_progress(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_batch_message_progress")
 
-    def delete_batch_message(self, batch_message_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def delete_batch_message(self, batch_message_id: str, user_access_token: Optional[str] = None) -> Any:
         """批量撤回消息"""
         request = DeleteBatchMessageRequest.builder().batch_message_id(batch_message_id).build()
         response = self.client.im.v1.batch_message.delete(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "delete_batch_message")
 
-    def upload_image(self, image_type: str, image_file: Any, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def upload_image(self, image_type: str, image_file: Any, user_access_token: Optional[str] = None) -> Any:
         """上传图片"""
         request = CreateImageRequest.builder() \
             .request_body(CreateImageRequestBody.builder().image_type(image_type).image(image_file).build()) \
@@ -251,7 +258,7 @@ class FeishuAPIManager:
             self._handle_response(response, "download_image")
         return response
 
-    def upload_file(self, file_type: str, file_name: str, file: Any, duration: Optional[int] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def upload_file(self, file_type: str, file_name: str, file: Any, duration: Optional[int] = None, user_access_token: Optional[str] = None) -> Any:
         """上传文件"""
         body = CreateFileRequestBody.builder().file_type(file_type).file_name(file_name).file(file)
         if duration: body.duration(duration)
@@ -267,7 +274,7 @@ class FeishuAPIManager:
             self._handle_response(response, "download_file")
         return response
 
-    def urgent_app_message(self, message_id: str, user_id_list: List[str], user_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def urgent_app_message(self, message_id: str, user_id_list: List[str], user_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Any:
         """发送应用内加急"""
         request = UrgentAppMessageRequest.builder() \
             .message_id(message_id) \
@@ -277,7 +284,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.urgent_app(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "urgent_app_message")
 
-    def patch_message(self, message_id: str, content: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def patch_message(self, message_id: str, content: str, user_access_token: Optional[str] = None) -> Any:
         """更新已发送的消息卡片"""
         request = PatchMessageRequest.builder() \
             .message_id(message_id) \
@@ -286,7 +293,7 @@ class FeishuAPIManager:
         response = self.client.im.v1.message.patch(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "patch_message")
 
-    def batch_update_url_preview(self, preview_tokens: List[str], open_ids: List[str], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def batch_update_url_preview(self, preview_tokens: List[str], open_ids: List[str], user_access_token: Optional[str] = None) -> Any:
         """更新 URL 预览"""
         request = BatchUpdateUrlPreviewRequest.builder() \
             .request_body(BatchUpdateUrlPreviewRequestBody.builder() \
@@ -297,14 +304,15 @@ class FeishuAPIManager:
         response = self.client.im.v2.url_preview.batch_update(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "batch_update_url_preview")
 
-    # 群组 IM Chat
-    def get_chat_info(self, chat_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    # --- 群组 (IM Chat) ---
+
+    def get_chat_info(self, chat_id: str, user_access_token: Optional[str] = None) -> Any:
         """获取群信息"""
         request = GetChatRequest.builder().chat_id(chat_id).build()
         response = self.client.im.v1.chat.get(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_chat_info")
 
-    def update_chat_top_notice(self, chat_id: str, chat_top_notice: List[ChatTopNotice], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def update_chat_top_notice(self, chat_id: str, chat_top_notice: List[ChatTopNotice], user_access_token: Optional[str] = None) -> Any:
         """更新群置顶"""
         request = PutTopNoticeChatTopNoticeRequest.builder() \
             .chat_id(chat_id) \
@@ -313,13 +321,13 @@ class FeishuAPIManager:
         response = self.client.im.v1.chat_top_notice.put_top_notice(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "update_chat_top_notice")
 
-    def delete_chat_top_notice(self, chat_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def delete_chat_top_notice(self, chat_id: str, user_access_token: Optional[str] = None) -> Any:
         """撤销群置顶"""
         request = DeleteTopNoticeChatTopNoticeRequest.builder().chat_id(chat_id).build()
         response = self.client.im.v1.chat_top_notice.delete_top_notice(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "delete_chat_top_notice")
 
-    def get_chat_link(self, chat_id: str, validity_period: str = "week", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def get_chat_link(self, chat_id: str, validity_period: str = "week", user_access_token: Optional[str] = None) -> Any:
         """获取群分享链接"""
         request = LinkChatRequest.builder() \
             .chat_id(chat_id) \
@@ -328,14 +336,14 @@ class FeishuAPIManager:
         response = self.client.im.v1.chat.link(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_chat_link")
 
-    def get_chat_members(self, chat_id: str, member_id_type: str = "open_id", page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def get_chat_members(self, chat_id: str, member_id_type: str = "open_id", page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """获取群成员列表"""
         request_builder = GetChatMembersRequest.builder().chat_id(chat_id).member_id_type(member_id_type).page_size(page_size)
         if page_token: request_builder.page_token(page_token)
         response = self.client.im.v1.chat_members.get(request_builder.build(), option=self._get_option(user_access_token))
         return self._handle_response(response, "get_chat_members")
 
-    def add_chat_members(self, chat_id: str, id_list: List[str], member_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def add_chat_members(self, chat_id: str, id_list: List[str], member_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Any:
         """将用户或机器人拉入群聊"""
         request = CreateChatMembersRequest.builder() \
             .chat_id(chat_id) \
@@ -345,27 +353,28 @@ class FeishuAPIManager:
         response = self.client.im.v1.chat_members.create(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "add_chat_members")
 
-    def is_member_in_chat(self, chat_id: str, member_id: str, member_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def is_member_in_chat(self, chat_id: str, member_id: str, member_id_type: str = "open_id", user_access_token: Optional[str] = None) -> Any:
         """判断用户或机器人是否在群里"""
         request = IsInChatChatMembersRequest.builder().chat_id(chat_id).member_id(member_id).member_id_type(member_id_type).build()
         response = self.client.im.v1.chat_members.is_in_chat(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "is_member_in_chat")
 
-    # 多维表格 Bitable
-    def get_bitable_app(self, app_token: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    # --- 多维表格 (Bitable) ---
+
+    def get_bitable_app(self, app_token: str, user_access_token: Optional[str] = None) -> Any:
         """获取多维表格元数据"""
         request = GetAppRequest.builder().app_token(app_token).build()
         response = self.client.bitable.v1.app.get(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "get_bitable_app")
 
-    def list_bitable_tables(self, app_token: str, page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def list_bitable_tables(self, app_token: str, page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """列出数据表"""
         request_builder = ListAppTableRequest.builder().app_token(app_token).page_size(page_size)
         if page_token: request_builder.page_token(page_token)
         response = self.client.bitable.v1.app_table.list(request_builder.build(), option=self._get_option(user_access_token))
         return self._handle_response(response, "list_bitable_tables")
 
-    def create_record(self, app_token: str, table_id: str, fields: Dict[str, Any], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def create_record(self, app_token: str, table_id: str, fields: Dict[str, Any], user_access_token: Optional[str] = None) -> Any:
         """新增记录"""
         request = CreateAppTableRecordRequest.builder() \
             .app_token(app_token) \
@@ -375,7 +384,7 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.create(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "create_record")
 
-    def update_record(self, app_token: str, table_id: str, record_id: str, fields: Dict[str, Any], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def update_record(self, app_token: str, table_id: str, record_id: str, fields: Dict[str, Any], user_access_token: Optional[str] = None) -> Any:
         """更新记录"""
         request = UpdateAppTableRecordRequest.builder() \
             .app_token(app_token) \
@@ -386,7 +395,7 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.update(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "update_record")
 
-    def search_records(self, app_token: str, table_id: str, view_id: Optional[str] = None, field_names: Optional[List[str]] = None, sort_list: Optional[List[Sort]] = None, filter_info: Optional[Dict] = None, page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def search_records(self, app_token: str, table_id: str, view_id: Optional[str] = None, field_names: Optional[List[str]] = None, sort_list: Optional[List[Sort]] = None, filter_info: Optional[Dict] = None, page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """查询记录"""
         body_builder = SearchAppTableRecordRequestBody.builder()
         if view_id: body_builder.view_id(view_id)
@@ -403,13 +412,13 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.search(request_builder.build(), option=self._get_option(user_access_token))
         return self._handle_response(response, "search_records")
 
-    def delete_record(self, app_token: str, table_id: str, record_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def delete_record(self, app_token: str, table_id: str, record_id: str, user_access_token: Optional[str] = None) -> Any:
         """删除记录"""
         request = DeleteAppTableRecordRequest.builder().app_token(app_token).table_id(table_id).record_id(record_id).build()
         response = self.client.bitable.v1.app_table_record.delete(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "delete_record")
 
-    def batch_create_records(self, app_token: str, table_id: str, records_fields: List[Dict[str, Any]], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def batch_create_records(self, app_token: str, table_id: str, records_fields: List[Dict[str, Any]], user_access_token: Optional[str] = None) -> Any:
         """新增多条记录"""
         app_table_records = [AppTableRecord.builder().fields(fs).build() for fs in records_fields]
         request = BatchCreateAppTableRecordRequest.builder() \
@@ -420,7 +429,7 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.batch_create(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "batch_create_records")
 
-    def batch_update_records(self, app_token: str, table_id: str, records_data: List[Dict[str, Any]], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def batch_update_records(self, app_token: str, table_id: str, records_data: List[Dict[str, Any]], user_access_token: Optional[str] = None) -> Any:
         """更新多条记录"""
         app_table_records = []
         for item in records_data:
@@ -434,7 +443,7 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.batch_update(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "batch_update_records")
 
-    def batch_get_records(self, app_token: str, table_id: str, record_ids: List[str], user_id_type: str = "open_id", with_shared_url: bool = True, automatic_fields: bool = True, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def batch_get_records(self, app_token: str, table_id: str, record_ids: List[str], user_id_type: str = "open_id", with_shared_url: bool = True, automatic_fields: bool = True, user_access_token: Optional[str] = None) -> Any:
         """批量获取记录"""
         request = BatchGetAppTableRecordRequest.builder() \
             .app_token(app_token) \
@@ -449,7 +458,7 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.batch_get(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "batch_get_records")
 
-    def batch_delete_records(self, app_token: str, table_id: str, record_ids: List[str], user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def batch_delete_records(self, app_token: str, table_id: str, record_ids: List[str], user_access_token: Optional[str] = None) -> Any:
         """删除多条记录"""
         request = BatchDeleteAppTableRecordRequest.builder() \
             .app_token(app_token) \
@@ -459,20 +468,20 @@ class FeishuAPIManager:
         response = self.client.bitable.v1.app_table_record.batch_delete(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "batch_delete_records")
 
-    def list_bitable_fields(self, app_token: str, table_id: str, page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def list_bitable_fields(self, app_token: str, table_id: str, page_size: int = 20, page_token: Optional[str] = None, user_access_token: Optional[str] = None) -> Any:
         """列出字段"""
         request_builder = ListAppTableFieldRequest.builder().app_token(app_token).table_id(table_id).page_size(page_size)
         if page_token: request_builder.page_token(page_token)
         response = self.client.bitable.v1.app_table_field.list(request_builder.build(), option=self._get_option(user_access_token))
         return self._handle_response(response, "list_bitable_fields")
 
-    def list_bitable_workflows(self, app_token: str, table_id: str, user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def list_bitable_workflows(self, app_token: str, table_id: str, user_access_token: Optional[str] = None) -> Any:
         """列出自动化流程"""
         request = ListAppWorkflowRequest.builder().app_token(app_token).table_id(table_id).build()
         response = self.client.bitable.v1.app_workflow.list(request, option=self._get_option(user_access_token))
         return self._handle_response(response, "list_bitable_workflows")
 
-    def update_bitable_workflow(self, app_token: str, table_id: str, workflow_id: str, status: str = "Enable", user_access_token: Optional[str] = None) -> Dict[str, Any]:
+    def update_bitable_workflow(self, app_token: str, table_id: str, workflow_id: str, status: str = "Enable", user_access_token: Optional[str] = None) -> Any:
         """更新自动化流程状态"""
         request = UpdateAppWorkflowRequest.builder() \
             .app_token(app_token) \

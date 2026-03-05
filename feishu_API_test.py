@@ -6,14 +6,16 @@ from feishu_API_manager import FeishuAPIManager
 # ==========================================
 # 1. 测试配置区域 (请填入真实的测试数据)
 # ==========================================
-TEST_USER_ID = "ou_d019d4c273cfe5d18d5a91b99da4b0e6"          # 您的 Open ID
-TEST_CHAT_ID = "oc_f69094cda5ee5139924a926abc5816b2"          # 测试群聊 ID
+TEST_USER_ID = ""          # 您的 Open ID (如: ou_xxx)
+TEST_CHAT_ID = ""          # 测试群聊 ID (如: oc_xxx)
 TEST_BITABLE_APP_TOKEN = "" # 多维表格 App Token
 TEST_BITABLE_TABLE_ID = ""  # 多维表格 Table ID
 # ==========================================
 
 def load_config():
     config_path = os.path.join(os.path.dirname(__file__), 'app_config.json')
+    if not os.path.exists(config_path):
+        raise Exception(f"找不到配置文件: {config_path}")
     with open(config_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -38,8 +40,9 @@ def run_test():
         print("[测试 2/5] 用户测试")
         try:
             user_info = manager.get_user(TEST_USER_ID)
-            print(f"  √ get_user: 成功 (姓名: {user_info.user.name})")
-            print(f"  √ batch_get_users: 已准备 (需真实 User ID 列表)\n")
+            # 根据 SDK 返回结构访问姓名
+            name = getattr(getattr(user_info, 'user', None), 'name', '未知')
+            print(f"  √ get_user: 成功 (姓名: {name})\n")
         except Exception as e:
             print(f"  × 用户测试失败: {e}\n")
     else:
@@ -51,7 +54,9 @@ def run_test():
         try:
             # 发送消息
             resp = manager.send_message(TEST_CHAT_ID, "API 自动化测试消息", "text", "chat_id")
-            msg_id = resp.message_id
+            msg_id = getattr(resp, 'message_id', None)
+            if not msg_id:
+                raise Exception("未获取到 message_id")
             print(f"  √ send_message: 成功 (Msg ID: {msg_id})")
             
             # 编辑消息
@@ -60,7 +65,8 @@ def run_test():
             
             # 获取消息列表
             msgs = manager.list_messages(TEST_CHAT_ID, "chat", page_size=5)
-            print(f"  √ list_messages: 成功 (获取到 {len(msgs.items)} 条消息)")
+            count = len(getattr(msgs, 'items', []))
+            print(f"  √ list_messages: 成功 (获取到 {count} 条消息)")
             
             # 撤回消息
             manager.delete_message(msg_id)
@@ -75,9 +81,11 @@ def run_test():
         print("[测试 4/5] 群组测试")
         try:
             chat_info = manager.get_chat_info(TEST_CHAT_ID)
-            print(f"  √ get_chat_info: 成功 (群名: {chat_info.name})")
+            name = getattr(chat_info, 'name', '未命名')
+            print(f"  √ get_chat_info: 成功 (群名: {name})")
             members = manager.get_chat_members(TEST_CHAT_ID, page_size=10)
-            print(f"  √ get_chat_members: 成功 (获取到 {len(members.items)} 个成员)\n")
+            count = len(getattr(members, 'items', []))
+            print(f"  √ get_chat_members: 成功 (获取到 {count} 个成员)\n")
         except Exception as e:
             print(f"  × 群组测试失败: {e}\n")
     else:
@@ -89,22 +97,26 @@ def run_test():
         try:
             # 列表数据表
             tables = manager.list_bitable_tables(TEST_BITABLE_APP_TOKEN)
-            print(f"  √ list_bitable_tables: 成功 (App 下有 {len(tables.items)} 张表)")
+            count = len(getattr(tables, 'items', []))
+            print(f"  √ list_bitable_tables: 成功 (App 下有 {count} 张表)")
             
             # 新增记录 (请确保表格有 '文字' 字段或修改字段名)
+            # 注意：此处字段名需根据您的实际表格修改
             record_resp = manager.create_record(TEST_BITABLE_APP_TOKEN, TEST_BITABLE_TABLE_ID, {"文字": "测试数据"})
-            record_id = record_resp.record.record_id
+            record_id = getattr(getattr(record_resp, 'record', None), 'record_id', None)
+            if not record_id:
+                raise Exception("未获取到 record_id")
             print(f"  √ create_record: 成功 (Record ID: {record_id})")
             
             # 搜索记录
-            search_resp = manager.search_records(TEST_BITABLE_APP_TOKEN, TEST_BITABLE_TABLE_ID)
+            manager.search_records(TEST_BITABLE_APP_TOKEN, TEST_BITABLE_TABLE_ID)
             print(f"  √ search_records: 成功")
             
             # 删除记录
             manager.delete_record(TEST_BITABLE_APP_TOKEN, TEST_BITABLE_TABLE_ID, record_id)
             print(f"  √ delete_record: 成功\n")
         except Exception as e:
-            print(f"  × 多维表格测试失败 (可能是字段名对不上): {e}\n")
+            print(f"  × 多维表格测试失败 (请检查字段名): {e}\n")
     else:
         print("[测试 5/5] 多维表格测试: 跳过 (未提供 Token 或 ID)\n")
 
