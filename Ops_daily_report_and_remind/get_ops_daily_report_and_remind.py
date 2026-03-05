@@ -2,10 +2,9 @@ import json
 import logging
 import re
 import os
-import sys
 import traceback
-from datetime import datetime, timedelta, timezone, time
-from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta, timezone
+from typing import List, Dict, Any
 
 import set_rpa_status_sync
 from feishu_API_manager import FeishuAPIManager

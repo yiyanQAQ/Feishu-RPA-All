@@ -12,9 +12,9 @@ from set_rpa_status_sync import RPAStatusManager
 
 # --- 配置区 ---
 def load_app_config():
-    config_path = os.path.join(os.path.dirname(__file__), 'app_config.json')
+    config_path = os.path.join(os.path.dirname(__file__), '../app_config.json')
     if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app_config.json')
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '../app_config.json')
     with open(config_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
