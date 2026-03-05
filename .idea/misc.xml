@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.14 (rpa_all)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.14 (rpa_all)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.14 (Feishu-RPA-All)" project-jdk-type="Python SDK" />
 </project>
