@@ -19,7 +19,7 @@
 - `app_config.json`: **飞书应用凭据配置文件 (自行创建)**
 - `feishu_API_manager.py`: **飞书 API 简化封装**
 - `set_rpa_status_sync.py`: **RPA 运行状态数据库同步模块**
-- `Daily_log_stats_and_remind`: **每日日志统计与提醒**
+- `Daily_log_status_and_remind`: **每日日志统计与提醒**
 - `Ops_daily_report_and_remind`: **运营日报同步与提醒**
 - `Submission_status_and_remind`: **交表情况统计与提醒**
 - `Quick_reminder`: **轻量级提醒工具**
@@ -69,7 +69,7 @@ A collection of RPA tools integrating various Feishu (Lark) automation capabilit
 - `app_config.json`: **Feishu Credentials Configuration (Create manually)**
 - `feishu_API_manager.py`: **Feishu API Core Manager**
 - `set_rpa_status_sync.py`: **RPA Status DB Sync Module**
-- `Daily_log_stats_and_remind.py`: **Daily Log Stats & Reminder**
+- `Daily_log_status_and_remind.py`: **Daily Log Status & Reminder**
 - `Ops_daily_report_and_remind`: **Ops Daily Report Sync & Reminder**
 - `Submission_status_and_remind`: **Submission Status & Reminders**
 - `Quick_reminder`: **Lightweight Reminder Tool**
