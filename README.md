@@ -9,12 +9,6 @@
 ### 简介
 集成多种飞书自动化能力的RPA工具集
 
-### 功能
-- **多维表同步**: 自动从飞书群聊记录中提取关键词，同步至多维表
-- **自动化提醒**: 针对未按时提交日报、接龙的人员发起精准的飞书群@提醒
-- **状态监控**: 实时监控RPA流程执行状态，并将异常信息推送至飞书
-- **可视化界面**: 提供多个 GUI 工具，方便快速发送提醒和查看运行日志
-
 ### 目录结构
 - `app_config.json`: **飞书应用凭据配置文件 (自行创建)**
 - `feishu_API_manager.py`: **飞书 API 简化封装**
@@ -58,12 +52,6 @@
 
 ### Introduction
 A collection of RPA tools integrating various Feishu (Lark) automation capabilities
-
-### Features
-- **Bitable Sync**: Automatically extracts keywords from Feishu group chat history and syncs them to Bitable.
-- **Automated Reminders**: Sends precise @ mentions in Feishu groups for members who missed daily reports or check-ins.
-- **Status Monitoring**: Real-time monitoring of RPA execution status with error notifications pushed to Feishu.
-- **GUI Tools**: Provides several visual tools for quick reminder sending and log viewing.
 
 ### Directory Structure
 - `app_config.json`: **Feishu Credentials Configuration (Create manually)**
