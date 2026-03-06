@@ -22,9 +22,9 @@ app_config = load_app_config()
 CONFIG = {
     "APP_ID": app_config["APP_ID"],
     "APP_SECRET": app_config["APP_SECRET"],
-    "BITABLE_APP_TOKEN": "LQBKbFnCNa2Ze6sQwfscvJSonRe",
-    "BITABLE_TABLE_ID": "tblom06hByATyJt9",
-    "FIELD_STATUS": "提交情况",
+    "BITABLE_APP_TOKEN": "VfltbrrzAazPq1sZwu3cM6Ognle",
+    "BITABLE_TABLE_ID": "tblPOxRNIpCiLIXy",
+    "FIELD_STATUS": "日志申请状态",
     "FIELD_PERSON": "人员",
     "FIELD_DATE": "日期",
     "FIELD_DEPT": "部门",
@@ -106,7 +106,7 @@ class DailyLogStatsReminder:
             if dept not in dept_stats: dept_stats[dept] = {"total": 0, "unpaid": 0}
             dept_stats[dept]["total"] += 1
 
-            if "未提交" in status:
+            if "未审核 or 未提交" in status:
                 total_unpaid += 1
                 dept_stats[dept]["unpaid"] += 1
                 name, openid = self.extract_user_info(fields.get(CONFIG["FIELD_PERSON"]))
