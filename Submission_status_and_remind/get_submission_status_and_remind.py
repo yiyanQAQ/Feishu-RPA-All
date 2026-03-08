@@ -21,8 +21,8 @@ app_config = load_app_config()
 CONFIG = {
     "APP_ID": app_config["APP_ID"],
     "APP_SECRET": app_config["APP_SECRET"],
-    "BITABLE_APP_TOKEN": "OD1VbarIWasTz1sNnpdcszQfnuh",
-    "BITABLE_TABLE_ID": "tblZJpyamcZqkH2p",
+    "BITABLE_APP_TOKEN": "VfltbrrzAazPq1sZwu3cM6Ognle",
+    "BITABLE_TABLE_ID": "tblw2mFrzGeDvczQ",
     "FIELD_STATUS": "未交", # 1代表未交
     "FIELD_PERSON": "交表人",
     "FIELD_DATE": "日期",
@@ -54,6 +54,13 @@ class SubmissionStatusReminder:
         return str(val).strip()
 
     def extract_user_info(self, field_value: Any):
+        if not field_value:
+            return "未知", None
+            
+        # 兼容新版 {"type": 11, "value": [...]}
+        if isinstance(field_value, dict) and "value" in field_value:
+            field_value = field_value["value"]
+
         if isinstance(field_value, list) and len(field_value) > 0:
             p = field_value[0]
             return p.get("name", "未知"), p.get("id")
@@ -93,12 +100,27 @@ class SubmissionStatusReminder:
 
         for fields in records:
             # 日期过滤
-            raw_date = fields.get(CONFIG["FIELD_DATE"])
-            if not isinstance(raw_date, int) or raw_date < self.start_ts:
+            raw_date_val = fields.get(CONFIG["FIELD_DATE"])
+            if isinstance(raw_date_val, (int, float)):
+                raw_date = int(raw_date_val)
+            else:
+                date_str = self.recursive_extract_text(raw_date_val)
+                try:
+                    raw_date = int(date_str) if date_str else 0
+                except ValueError:
+                    raw_date = 0
+
+            if raw_date < self.start_ts:
                 continue
 
             # 状态检查 (1未交)
-            status = fields.get(CONFIG["FIELD_STATUS"])
+            raw_status = fields.get(CONFIG["FIELD_STATUS"])
+            status_str = self.recursive_extract_text(raw_status)
+            try:
+                status = int(float(status_str)) if status_str else 0
+            except ValueError:
+                status = 0
+                
             if status != 1:
                 continue
 
