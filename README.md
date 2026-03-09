@@ -16,10 +16,12 @@
 - `feishu_API_manager.py`: **飞书 API 简化封装**
 - `set_rpa_status_sync.py`: **RPA 运行状态数据库同步模块**
 - `Daily_log_status_and_remind/`: **每日日志统计与提醒**
+- `Daily_log_time_and_remind/`: **日志超时统计提醒**
 - `Ops_daily_report_and_remind/`: **运营日报同步与提醒**
 - `Quick_reminder/`: **轻量级提醒工具**
 - `RPA_status-broadcast-sync/`: **RPA 状态广播**
 - `Submission_status_and_remind/`: **交表情况统计与提醒**
+- `Submission_time_and_remind/`:**交表超时统计与提醒**
 
 ### 配置凭据
 
@@ -65,10 +67,12 @@ A collection of RPA tools integrating various Feishu (Lark) automation capabilit
 - `feishu_API_manager.py`: **Feishu API Core Manager**
 - `set_rpa_status_sync.py`: **RPA Status DB Sync Module**
 - `Daily_log_status_and_remind/`: **Daily Log Status & Reminder**
+- `Daily_log_time_and_remind/`: **Daily Log Timeout & Reminder**
 - `Ops_daily_report_and_remind/`: **Ops Daily Report Sync & Reminder**
 - `Quick_reminder/`: **Lightweight Reminder Tool**
 - `RPA_status-broadcast-sync/`: **RPA Status Broadcast**
 - `Submission_status_and_remind/`: **Submission Status & Reminders**
+- `Submission_time_and_remind/`:**Submission Timeout & Reminders**
 
 ### Configuration
 

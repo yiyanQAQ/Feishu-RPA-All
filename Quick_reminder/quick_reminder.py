@@ -16,8 +16,8 @@ def load_app_config():
 app_config = load_app_config()
 APP_ID = app_config["APP_ID"]
 APP_SECRET = app_config["APP_SECRET"]
-CHAT_ID = "oc_f69094cda5ee5139924a926abc5816b2"
-
+# CHAT_ID = "oc_f69094cda5ee5139924a926abc5816b2"
+CHAT_ID = "oc_824b9a0fc86c489625330dd8f5d56949"
 
 def send_remind():
     names_str = entry_names.get()

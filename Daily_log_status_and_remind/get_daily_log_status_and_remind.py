@@ -163,7 +163,7 @@ class DailyLogStatsReminder:
         # 组装卡片
         card = {
             "config": {"wide_screen_mode": True},
-            "header": {"template": "red", "title": {"content": "🗓️ 周期性日志未提交统计", "tag": "plain_text"}},
+            "header": {"template": "orange", "title": {"content": "🗓️ 日志未提交统计", "tag": "plain_text"}},
             "elements": [
                 {"tag": "div", "text": {"tag": "lark_md", "content": f"{at_header}\n\n当前检测到 **{total_unpaid}** 条未提交记录："}},
                 {"tag": "hr"},

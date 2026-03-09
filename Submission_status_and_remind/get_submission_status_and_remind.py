@@ -185,7 +185,7 @@ class SubmissionStatusReminder:
         
         card = {
             "config": {"wide_screen_mode": True},
-            "header": {"template": "orange", "title": {"content": "📊 本月交表情况追踪报告", "tag": "plain_text"}},
+            "header": {"template": "orange", "title": {"content": "📊 未交表情况统计", "tag": "plain_text"}},
             "elements": [
                 {"tag": "div", "text": {"tag": "lark_md", "content": f"{at_header}\n\n当前检测到 **{total_unpaid}** 项表格尚未提交："}},
                 {"tag": "hr"},
