@@ -19,7 +19,7 @@ def load_app_config():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     possible_paths = [
         os.path.join(base_dir, '../app_config.json'),
-        os.path.join(base_dir, '../..', 'app_config.json'),
+        os.path.join(base_dir, '../../..', 'app_config.json'),
         os.path.join(os.getcwd(), '../app_config.json'),
     ]
     for path in possible_paths:
@@ -185,7 +185,7 @@ class DailyLogTimeReminder:
                     "aspect_ratio": "4:3",
                     "chart_spec": {
                         "type": "pie",
-                        "data": {"values": yesterday_chart_values if yesterday_chart_values else [{"user": "全员已交", "val": 0}]},
+                        "data": {"values": yesterday_chart_values if yesterday_chart_values else [{"user": "今日已交人员无超时", "val": 0}]},
                         "categoryField": "user",
                         "valueField": "val",
                         "outerRadius": 0.7,
